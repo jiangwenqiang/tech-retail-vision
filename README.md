@@ -1,4 +1,4 @@
-# 科技零售时空隧道 (TechRetailTunnel)
+# 科技零售 (TechRetailTunnel)
 
 
 ## License
