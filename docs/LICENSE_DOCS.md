@@ -14,4 +14,3 @@ Under the following terms:
 No additional restrictions — You may not apply legal terms or technological measures that legally restrict others from doing anything the license permits.
 
 Full license text: https://creativecommons.org/licenses/by-nc-sa/4.0/
-
