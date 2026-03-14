@@ -16,6 +16,7 @@ package-lock.json
 yarn.lock
 .pnpm-debug.log
 .vscode/
+projects/
 
 # ============================
 # Python
@@ -30,7 +31,7 @@ env/
 venv/
 
 # ============================
-# Java 
+# Java
 # ============================
 *.class
 *.jar

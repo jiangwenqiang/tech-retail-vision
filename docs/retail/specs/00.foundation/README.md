@@ -2,7 +2,8 @@
 
 ## 目录
 
-- [权限](权限/README.md)
-- [国际化](国际化/README.md)
-- [UI规范](UI规范/README.md)
-- [元数据](元数据/README.md)
+1. [01. 国际化](./01.i18n/README.md)
+2. [02. 元数据](./02.metadata/docs.md)
+3. [03. 权限](./03.permissions/README.md)
+4. [04. UI](./04.ui/README.md)
+5. [99. 参考资料](./99.references/docs.md)
