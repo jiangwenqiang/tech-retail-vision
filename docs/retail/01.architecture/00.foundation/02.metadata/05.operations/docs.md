@@ -71,8 +71,8 @@ taxonomy:
 - 实体总数
 - 字段总数
 - 属性总数
-- 活跃发布数
-- 待审批数
+- 业务唯一冲突次数
+- `props_json` 解析失败次数
 - 租户自定义扩展数
 
 ### 系统指标
@@ -107,4 +107,4 @@ taxonomy:
 
 - 存储层架构：[../01.storage/](../01.storage/)
 - 服务层架构：[../02.services/](../02.services/)
-- 业务规格：[../../../00.specs/00.foundation/02.metadata/05.governance/](../../../00.specs/00.foundation/02.metadata/05.governance/)
+- 业务规格：[../../../00.specs/00.foundation/02.metadata/00.overview.md](../../../00.specs/00.foundation/02.metadata/00.overview.md)

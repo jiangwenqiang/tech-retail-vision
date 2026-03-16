@@ -6,40 +6,42 @@ taxonomy:
 
 # 元数据存储层架构
 
-## 概述
+## 设计策略（简化版）
 
-存储层架构定义元数据管理系统的数据存储结构和访问方式，包括数据库表设计、索引策略和数据流转。
+1. 每张表仅显式列化少量基础字段（优先 `name`、`status`）与定位约束字段；其余放入 `props_json`
+2. 业务可扩展属性统一放入 JSON 列（统一命名为 `props_json`）
+3. 保留 `yn` 与审计列，便于软删除与追踪
 
-## 子域目录
+## 表清单
 
-1. [数据库表结构与 DDL](./database-schema.md)
-   - 完整的 DDL 定义
-   - 表结构说明
-   - 索引设计
-   - 字段类型与 JSON 字段结构
-   - 数据完整性约束
-   - 性能优化建议
-   - 迁移策略
+1. `metadata_entity`
+2. `metadata_field`
+3. `metadata_link`
+4. `metadata_index`
+5. `metadata_attribute`
+6. `metadata_client`
+7. `metadata_layout_profile`
+8. `metadata_layout`
+9. `metadata_customization`
+10. `metadata_client_customization`
 
-## 核心表
+## 去重策略
 
-- `metadata_entity` - 实体元数据表
-- `metadata_field` - 字段元数据表
-- `metadata_attribute` - 属性元数据表
-- `metadata_client` - 客户端配置元数据表
-- `metadata_version` - 版本审计表
+1. 不在数据库层声明 `UNIQUE KEY`（支持多次作废/历史残留）
+2. 业务唯一由服务层校验与事务控制保证
+3. 数据库仅保留普通索引用于查询性能
 
-## 设计原则
+## JSON 承载建议
 
-1. **统一前缀**：所有表名以 `metadata_` 开头
-2. **主键规范**：统一使用 `id BIGINT AUTO_INCREMENT`
-3. **软删除**：使用 `yn CHAR(1)` 字段（N=有效，Y=删除）
-4. **审计字段**：`created_at/created_by_id/modified_at/modified_by_id`
-5. **版本控制**：`version INT` 字段记录当前版本
-6. **扩展性**：使用 JSON 字段承载可扩展参数
+- `metadata_entity.props_json`: 非 `name/status` 的业务属性（如 `namePlural,type,iconClass,color,...`）
+- `metadata_field.props_json`: 非 `name/status` 的字段属性（如 `type,required,readOnly,defaultValue,params,sortOrder,...`）
+- `metadata_link.props_json`: 非 `name/status` 的关系属性（如 `type,foreignEntity,foreign,required,...`）
+- `metadata_index.props_json`: 非 `status` 的索引属性（如 `fields,unique,...`）
+- `metadata_attribute.props_json`: 非 `name/status` 的属性字段（如 `type,required,isMultilang,parentId,sortOrder,...`）
+- `metadata_client.props_json`: 客户端配置（`controller,views,recordViews,relationshipPanels,...`）
+- `metadata_layout_profile.props_json`: 非 `name/status` 的 profile 属性
+- `metadata_layout.props_json`: 布局定义完整配置
 
 ## 相关文档
 
-- 业务规格：[../../../00.specs/00.foundation/02.metadata/04.runtime-storage/](../../../00.specs/00.foundation/02.metadata/04.runtime-storage/)
-- 服务层架构：[../02.services/](../02.services/)
-- 安全架构：[../04.security/](../04.security/)
+- [数据库表结构与 DDL](./database-schema.md)

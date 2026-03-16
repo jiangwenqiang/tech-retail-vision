@@ -37,7 +37,7 @@ taxonomy:
 │  ┌─────────────────────────────────────────────────────┐     │
 │  │              Data Isolation Layer                   │     │
 │  │  - Tenant Isolation                                 │     │
-│  │  - Row-Level Security                               │     │
+│  │  - Context-Based Isolation                               │     │
 │  │  - Field-Level Security                             │     │
 │  └─────────────────────────────────────────────────────┘     │
 │                                                                  │
@@ -200,12 +200,23 @@ enum Permission {
   "role": "tenant_admin",
   "permissions": [
     "metadata:entity:read",
-    "metadata:field:*",
-    "metadata:attribute:*",
+    "metadata:field:read",
+    "metadata:attribute:create",
+    "metadata:attribute:update",
+    "metadata:attribute:read",
     "metadata:tenant:customize"
   ]
 }
 ```
+
+### ABAC 补充约束（强制）
+
+1. 租户侧禁止直接执行平台基线结构变更：`entity create/update/delete`、`field create/update/delete`、`link/index` 结构写操作全部拒绝。
+2. 租户字段能力仅限 Metadata Customization 覆盖（`name/required/readOnly/status`）且目标对象必须 `customizable=true`。
+3. 租户属性能力分两类：
+   - 平台属性：仅允许 Metadata Customization 覆盖白名单字段且需 `customizable=true`。
+   - 租户自建属性（`scope=TENANT`）：仅允许在当前 `tenantId` 下创建/修改。
+4. Client/Layout 定制必须通过三模型定制入口，不允许直接改平台基线记录。
 
 ### 权限检查流程
 
@@ -262,46 +273,14 @@ interface FieldPermission {
 
 ## 多租户数据隔离
 
-### 租户隔离策略
+### 隔离原则（与存储层一致）
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      应用层                                  │
-├─────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  1. 租户上下文注入                                             │
-│     - 从 Token 中提取 tenantId                                │
-│     - 设置 ThreadLocal 上下文                                 │
-│                                                                 │
-│  2. 查询过滤                                                   │
-│     - 自动添加 tenant_id 过滤条件                              │
-│     - 防止跨租户数据访问                                       │
-│                                                                 │
-│  3. 写入验证                                                   │
-│     - 验证写入操作的租户归属                                   │
-│     - 防止数据写入错误的租户                                   │
-│                                                                 │
-└─────────────────────────────────────────────────────────────┘
-                       │
-                       ▼
-┌─────────────────────────────────────────────────────────────┐
-│                      数据层                                  │
-├─────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  1. 表设计                                                     │
-│     - 所有表包含 tenant_id 字段（除系统表）                    │
-│     - 唯一索引包含 tenant_id                                  │
-│                                                                 │
-│  2. Row-Level Security (RLS)                                  │
-│     - 数据库级别 RLS 策略                                     │
-│     - 自动过滤 tenant_id                                      │
-│                                                                 │
-│  3. 连接池隔离（可选）                                        │
-│     - 为不同租户使用不同连接池                                │
-│     - 防止租户间资源竞争                                      │
-│                                                                 │
-└─────────────────────────────────────────────────────────────┘
-```
+1. 不要求“所有表都包含 `tenant_id`”，按对象语义隔离：
+   - 平台基线表（如 `metadata_entity/field/attribute/client/layout`）通过 `scope/status/customizable/owner` 控制可见与可写。
+   - 租户定制表（如 `metadata_customization`、`metadata_client_customization`）通过 `tenant_id` 强归属。
+   - Layout Profile 通过 `scope + tenant_id + owner` 归属隔离。
+2. 不依赖数据库 RLS；在应用服务与仓储层统一注入租户上下文过滤。
+3. 存储层不以数据库 UNIQUE 保证业务唯一，冲突由服务层事务内校验（与存储方案一致）。
 
 ### 租户上下文
 
@@ -338,40 +317,17 @@ class TenantContextManager {
 **查询过滤**：
 ```typescript
 class TenantAwareRepository {
-  async findByID(id: string): Promise<Entity> {
+  async findRuntimeEntity(entityCode: string): Promise<Entity> {
     const context = TenantContextManager.getContext()
-    const result = await this.db.query(
-      'SELECT * FROM metadata_entity WHERE id = ? AND tenant_id = ? AND yn = "N"',
-      [id, context.tenantId]
+    // 平台基线读取：scope=PLATFORM + status=ACTIVE
+    // 租户侧定制读取：tenant_id=context.tenantId
+    return this.db.queryOne(
+      `SELECT * FROM metadata_entity
+       WHERE code = ? AND scope = 'PLATFORM' AND status = 'ACTIVE' AND yn = 'N'`,
+      [entityCode]
     )
-    return result
-  }
-
-  async findAll(filter: Filter): Promise<Entity[]> {
-    const context = TenantContextManager.getContext()
-    const query = this.buildQuery(filter)
-    query.andWhere('tenant_id', context.tenantId)
-    query.andWhere('yn', 'N')
-    return this.db.execute(query)
   }
 }
-```
-
-**数据库 RLS 策略**：
-```sql
--- 创建 RLS 策略
-CREATE POLICY tenant_isolation_policy ON metadata_entity
-  USING (tenant_id = current_setting('app.current_tenant_id')::varchar)
-  WITH CHECK (tenant_id = current_setting('app.current_tenant_id')::varchar);
-
--- 启用 RLS
-ALTER TABLE metadata_entity ENABLE ROW LEVEL SECURITY;
-
--- 应用策略
-ALTER TABLE metadata_entity DROP POLICY IF EXISTS tenant_isolation_policy;
-CREATE POLICY tenant_isolation_policy ON metadata_entity
-  FOR ALL
-  USING (tenant_id = current_setting('app.current_tenant_id')::varchar);
 ```
 
 ## 审计日志

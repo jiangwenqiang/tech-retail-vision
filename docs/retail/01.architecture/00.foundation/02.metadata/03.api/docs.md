@@ -1,91 +1,44 @@
 ---
-title: 元数据 API 层架构
+title: 元数据 API 层架构（DDD）
 taxonomy:
     category: docs
 ---
 
-# 元数据 API 层架构
+# 元数据 API 层架构（DDD）
 
-## 概述
+## 设计原则
 
-API 层架构定义元数据管理系统的对外接口规范，包括 REST API 和 GraphQL API，负责请求处理、响应格式化和错误处理。
+1. API 是应用层端口（Application Layer Port）
+2. 写操作使用 Command Model，读操作使用 Query Model
+3. API DTO 与领域对象解耦（Assembler/Mapper 转换）
 
-## 子域目录
+## 接口分组
 
-1. [REST API 规范](./rest-api.md)
-   - API 基础规范
-   - 端点定义（Entity、Field、Attribute、Client Config、Version、Validation、Release、Promotion）
-   - 错误码定义
-   - 限流策略
-   - 分页规范
-   - 批量操作
-   - Webhooks
+1. Definition Commands
+- 创建/修改 Entity、Field、Attribute、Client、LayoutProfile、Layout
 
-## API 架构
+2. Customization Commands
+- Metadata/Client 覆盖命令
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      API Gateway                             │
-│                  (Rate Limiting, Auth)                       │
-├─────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐        │
-│  │ REST API     │  │ GraphQL API  │  │ Webhooks     │        │
-│  └──────────────┘  └──────────────┘  └──────────────┘        │
-│                                                                  │
-├─────────────────────────────────────────────────────────────┤
-│                        Service Layer                          │
-│                                                                  │
-│  MetadataService | ValidationService | GovernanceService      │
-│                                                                  │
-└─────────────────────────────────────────────────────────────┘
-```
+3. Runtime Queries
+- 运行时元数据读取（不产生副作用）
 
-## API 类别
+## 约束
 
-### 元数据操作 API
-- Entity API - 实体管理
-- Field API - 字段管理
-- Attribute API - 属性管理
-- Client Config API - 客户端配置管理
+1. 外部定位统一使用 code（如 `entityCode`, `profile.code`）
+2. `Layout` 资源定位必须使用 `entityCode + scope + owner + profile.code + type` 组合键（避免跨层同名 profile 冲突）
+3. 冲突返回 `409`（源于领域 `MetadataBusinessConflictException`）
+4. 扩展属性经应用层映射到存储 `props_json`
 
-### 版本管理 API
-- Version API - 版本历史和快照
-- Compare API - 版本对比
-- Rollback API - 版本回滚
+## Adapter 落地
 
-### 验证 API
-- Validation API - 元数据验证
-- Compatibility API - 兼容性检查
-- Conflict API - 冲突检测
-
-### 发布管理 API
-- Release API - 发布请求和执行
-- Approval API - 审批流程
-- Promotion API - 提升到基线
-
-## 基础规范
-
-### 基础 URL
-```
-生产环境: https://api.retail.com/metadata/v1
-测试环境: https://api-test.retail.com/metadata/v1
-```
-
-### 通用请求头
-```http
-Content-Type: application/json
-Authorization: Bearer {access_token}
-X-Tenant-ID: {tenant_id}
-X-Request-ID: {unique_request_id}
-```
-
-### 限流策略
-- **读取操作**：1000 请求/分钟
-- **写入操作**：100 请求/分钟
-- **批量操作**：10 请求/分钟
+1. Controller 只处理协议细节（HTTP、Header、参数校验）
+2. Assembler 负责：
+- `Request -> Command/Query`
+- `Result/View -> Response`
+3. 不在 Controller 写领域规则，不直接操作 Repository
 
 ## 相关文档
 
-- 服务层架构：[../02.services/](../02.services/)
-- 安全架构：[../04.security/](../04.security/)
+- [REST API（DDD）](./rest-api.md)
+- [服务层架构（DDD）](../02.services/)

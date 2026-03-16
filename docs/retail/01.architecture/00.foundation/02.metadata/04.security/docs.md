@@ -44,7 +44,7 @@ taxonomy:
 │  ┌─────────────────────────────────────────────────────┐     │
 │  │              Data Isolation Layer                   │     │
 │  │  - Tenant Isolation                                 │     │
-│  │  - Row-Level Security                               │     │
+│  │  - Context-Based Isolation                               │     │
 │  │  - Field-Level Security                             │     │
 │  └─────────────────────────────────────────────────────┘     │
 │                                                                  │
@@ -67,7 +67,7 @@ taxonomy:
 
 ### 数据隔离
 - 租户级别数据隔离
-- Row-Level Security (RLS)
+- 应用层租户上下文过滤（按 scope/owner/tenantId）
 - 连接池隔离（可选）
 - 查询自动过滤
 

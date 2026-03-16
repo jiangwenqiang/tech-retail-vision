@@ -8,90 +8,36 @@ taxonomy:
 
 ## 概述
 
-本文档定义元数据管理系统的完整架构设计，对应业务规格：[00.specs/00.foundation/02.metadata/](../../00.specs/00.foundation/02.metadata/)
+本文档定义元数据管理系统在架构层的落地方案，对应业务规格：
+- [规格总览](../../../00.specs/00.foundation/02.metadata/00.overview.md)
+- [Entity](../../../00.specs/00.foundation/02.metadata/01.entity.md)
+- [Field Type](../../../00.specs/00.foundation/02.metadata/02.field-type.md)
+- [Attribute](../../../00.specs/00.foundation/02.metadata/03.attribute.md)
+- [Client](../../../00.specs/00.foundation/02.metadata/04.client.md)
+- [Layout Profile](../../../00.specs/00.foundation/02.metadata/05.layout-profile.md)
+- [Layout](../../../00.specs/00.foundation/02.metadata/06.layout.md)
+- [Customization](../../../00.specs/00.foundation/02.metadata/07.customization.md)
 
 ## 架构分层
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      Presentation Layer                      │
-│                   (API Gateway + UI)                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────┐     │
-│  │              Security Layer                         │     │
-│  │  Authentication | Authorization | Data Isolation    │     │
-│  └─────────────────────────────────────────────────────┘     │
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────┐     │
-│  │              API Layer                              │     │
-│  │  REST API | GraphQL API | Webhooks                  │     │
-│  └─────────────────────────────────────────────────────┘     │
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────┐     │
-│  │              Service Layer                          │     │
-│  │  Metadata | Validation | Governance | Version       │     │
-│  └─────────────────────────────────────────────────────┘     │
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────┐     │
-│  │              Repository Layer                       │     │
-│  │  Entity | Field | Attribute | Version               │     │
-│  └─────────────────────────────────────────────────────┘     │
-│                                                                  │
-├─────────────────────────────────────────────────────────────┤
-│                      Storage Layer                            │
-│                   MySQL | Redis | S3                          │
-└─────────────────────────────────────────────────────────────┘
-```
+1. Storage：元数据表与约束（`entityCode` 强归属、业务唯一键）
+2. Services：三模型合并、校验、缓存、审计
+3. API：元数据管理接口与运行时解析接口
+4. Security：认证授权与租户隔离
+5. Operations：监控、告警、容量与故障处理
+
+## 核心规则
+
+1. 可见性由 `status` 决定；`customizable` 仅控制 overlay/派生权限
+2. Client 定制为 Tenant 覆盖；Layout 定制为 Profile 派生（Tenant/User）
+3. Layout 运行时按 `USER -> TENANT -> PLATFORM` 逐层命中同维度 `Layout(entityCode + profileId + type)`
+4. `LayoutProfile` 以 `code` 作为方案编码；引用表达统一使用 `profile.code`
+5. `Field/Attribute/Client/Layout` 必须显式绑定 `entityCode`
 
 ## 子域目录
 
-1. [01. 存储层架构](./01.storage/) - 数据库表结构、DDL、索引设计
-2. [02. 服务层架构](./02.services/) - 核心服务定义和实现
-3. [03. API 层架构](./03.api/) - REST API 和 GraphQL API 规范
-4. [04. 安全架构](./04.security/) - 认证、授权、数据隔离
-5. [05. 运维架构](./05.operations/) - 监控、告警、部署、故障处理
-
-## 架构原则
-
-1. **分层解耦**：各层职责清晰，通过接口通信
-2. **高可用性**：支持水平扩展和故障转移
-3. **高性能**：多级缓存和查询优化
-4. **安全性**：多层安全防护和数据隔离
-5. **可观测性**：完善的监控、日志和追踪
-6. **可扩展性**：支持功能扩展和性能扩展
-
-## 技术栈
-
-### 后端
-- **语言**：Node.js / TypeScript
-- **框架**：NestJS / Express
-- **数据库**：MySQL 8.0+
-- **缓存**：Redis 6.0+
-- **消息队列**：RabbitMQ / Kafka
-
-### 前端
-- **框架**：React / Vue
-- **UI 库**：Ant Design / Element
-- **状态管理**：Redux / Vuex
-
-### DevOps
-- **容器**：Docker / Kubernetes
-- **监控**：Prometheus / Grafana
-- **追踪**：Jaeger / Zipkin
-- **日志**：ELK Stack
-
-## 非功能性需求
-
-| 需求类型 | 目标值 |
-|---------|-------|
-| 可用性 | 99.9% |
-| 响应时间 | P95 < 200ms |
-| 吞吐量 | 1000 req/s |
-| 并发用户 | 10000 |
-| 数据保留 | 30 天 |
-
-## 相关文档
-
-- 业务规格总览：[../../00.specs/00.foundation/02.metadata/01.overview/docs.md](../../00.specs/00.foundation/02.metadata/01.overview/docs.md)
-- 治理流程：[../../00.specs/00.foundation/02.metadata/05.governance/docs.md](../../00.specs/00.foundation/02.metadata/05.governance/docs.md)
+1. [01. 存储层架构](./01.storage/)
+2. [02. 服务层架构](./02.services/)
+3. [03. API 层架构](./03.api/)
+4. [04. 安全架构](./04.security/)
+5. [05. 运维架构](./05.operations/)

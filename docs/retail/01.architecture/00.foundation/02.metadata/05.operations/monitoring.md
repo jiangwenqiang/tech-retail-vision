@@ -10,7 +10,7 @@ taxonomy:
 
 本文档定义元数据管理系统的运维架构，包括监控、告警、部署和故障处理。
 
-对应业务规格：[00.specs/00.foundation/02.metadata/05.governance/](../../../00.specs/00.foundation/02.metadata/05.governance/)
+对应业务规格：[00.specs/00.foundation/02.metadata/00.overview.md](../../../00.specs/00.foundation/02.metadata/00.overview.md)
 
 ## 监控体系
 
@@ -66,8 +66,8 @@ taxonomy:
 | `metadata_entity_count` | Gauge | 实体总数 |
 | `metadata_field_count` | Gauge | 字段总数 |
 | `metadata_attribute_count` | Gauge | 属性总数 |
-| `metadata_active_releases` | Gauge | 活跃发布数 |
-| `metadata_pending_approvals` | Gauge | 待审批数 |
+| `metadata_uniqueness_conflicts` | Counter | 业务唯一冲突次数 |
+| `metadata_props_json_parse_errors` | Counter | `props_json` 解析失败次数 |
 | `metadata_custom_extensions` | Gauge | 租户自定义扩展数 |
 
 #### 系统指标
