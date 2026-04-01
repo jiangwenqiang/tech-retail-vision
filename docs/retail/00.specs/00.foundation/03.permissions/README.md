@@ -6,6 +6,7 @@
 
 - [00. 方案总览](./00.overview.md) — 权限系统整体设计、分层架构、判定流程
 - [01. 角色定义](./01.role.md) — Role 实体定义、预设角色、角色分配
-- [02. 实体权限](./02.entity-permission.md) — 实体级 CRUD 控制（能不能操作）
+- [02. 实体权限](./02.entity-permission.md) — 实体级操作权限（CRUD + 审批，能不能操作）
 - [03. 范围权限](./03.scope-permission.md) — 记录级过滤（能操作哪些记录，含 scope/field/expression/callback）
 - [04. 字段权限](./04.field-permission.md) — 字段级读写/脱敏控制
+- [05. 平台权限](./05.platform-permission.md) — 平台角色系统操作权限（元数据/租户/系统管理）
